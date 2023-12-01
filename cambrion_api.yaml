@@ -1376,7 +1376,7 @@ components:
         tryImageConversion:
           type: boolean
           description: Tries to convert the provided content to an image (e.g. PDF)
-          default: false
+          default: true
         trySimpleText:
           type: boolean
           description: Tries to extract readable text from input media (e.g. Word doc)
@@ -1605,7 +1605,7 @@ components:
           type: string
         dateValue:
           type: string
-          format: date-time
+          format: date
         textData:
           type: string
         quantityData:
