@@ -18,17 +18,17 @@ tags:
   - name: Pipelines
     description: Machine learning pipelines.
     externalDocs:
-      description: Find out more about our store
+      description: Find out more in the documentation
       url: https://docs.cambrion.io/docs/workflows/pipeline
   - name: Deployments
     description: (TODO) Deployed Pipelines.
     externalDocs:
-      description: Find out more about our store
+      description: Find out more in the documentation
       url: https://docs.cambrion.io/docs
   - name: Indices
     description: Indices
     externalDocs:
-      description: Find out more about our store
+      description: Find out more in the documentation
       url: https://docs.cambrion.io/docs/workflows/linker
 
 paths:
