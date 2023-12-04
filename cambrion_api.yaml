@@ -1413,6 +1413,7 @@ components:
           "$ref": "#/components/schemas/Geometry"
       type: object
       title: Block
+      description: The entity block combining recognized text and geometry.
 
     BoundingBox:
       required:
@@ -1423,14 +1424,19 @@ components:
       properties:
         width:
           type: number
+          description: The relative width of the entity box. Can be between 0 and 1.
         height:
           type: number
+          description: The relative height of the entity box. Can be between 0 and 1.
         left:
           type: number
+          description: The relative left-most x-coordinate of the entity box. Can be between 0 and 1.
         top:
           type: number
+          description: The relative top-most y-coordinate of the entity box. Can be between 0 and 1.
       type: object
       title: Bounding Box
+      description: The bounding box describing the location of the recognized entity.
 
     Code:
       required:
@@ -1770,9 +1776,13 @@ components:
           type: string
       type: object
       title: Key Value Pair
+      description: |
+        A description of two entities that logically related. The key typically represents text that describes
+        the value entity. The value entity can also represent nested structures such as other key value sets
+        or tables.
 
     KeyValueSet:
-      description: A key value set can be a set arbitrary key value pairs but also a row in a table.
+      description: A key value set can be a set of arbitrary key value pairs but also a row in a table.
       properties:
         id:
           type: string
@@ -1782,6 +1792,7 @@ components:
           items:
             "$ref": "#/components/schemas/KeyValuePair"
           type: array
+          description: An array of key value pairs.
         entity:
           "$ref": "#/components/schemas/Entity"
       type: object
@@ -1873,10 +1884,13 @@ components:
       properties:
         x:
           type: number
+          description: Relative x-coordinate of the vertex.
         y:
           type: number
+          description: Relative y-coordinate of the vertex.
       type: object
       title: Point
+      description: A vertex of the polygon that describes the block.
 
     Polygon:
       properties:
@@ -1886,6 +1900,7 @@ components:
           type: array
       type: object
       title: Polygon
+      description: The polygon of the recognized entity.
 
     Table:
       required:
@@ -1898,16 +1913,22 @@ components:
           "$ref": "#/components/schemas/Entity"
         tag:
           type: string
+          description: Can be used to uniquely identify a table on a page.
         headers:
           items:
             "$ref": "#/components/schemas/Entity"
           type: array
+          description: The header of a table if present.
         rows:
           items:
             "$ref": "#/components/schemas/KeyValueSet"
           type: array
+          description: The rows of the table representing the actual content of the table.
       type: object
       title: Table
+      description: |
+        An entity that describes a list of other entities such as other tables, key value sets (rows of a table)
+        or simple text entities.
 
     TopKIndexFilter:
       required:
