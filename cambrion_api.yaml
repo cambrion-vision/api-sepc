@@ -7,6 +7,7 @@ info:
     To receive a free API key reach out at info@cambrion.de with brief description of your use-case.
 
 servers:
+  - url: http://localhost:8080
   - url: https://api.cambrion.io/v1
 
 tags:
@@ -579,6 +580,31 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /indices/{indexId}/query:
+    post:
+      summary: Query an index with a search string
+      description: |
+        Query an index with a search string
+      tags:
+        - Indices
+      parameters:
+        - $ref: '#/components/parameters/IndexId'
+      requestBody:
+        $ref: '#/components/requestBodies/QueryRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueryResponse'
+        '400':
+          description: Invalid index ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /indices/{indexId}/documents:
     get:
       summary: Get all documents
@@ -757,6 +783,13 @@ components:
           schema:
             $ref: '#/components/schemas/IndexedDocument'
 
+    QueryRequest:
+      description: Query request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Query'
+
 
   responses:
     ExecutionResponse:
@@ -915,6 +948,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Index'
+
+    QueryResponse:
+      description: List of documents that matched the query
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/IndexedDocument'
 
     NotFound:
       description: The specified resource was not found
@@ -1390,9 +1432,16 @@ components:
       properties:
         indexId:
           type: string
+          description: Unique ID of the index.
+        semanticSearchField:
+          type: string
+          description: This field is used to encode semantic information
         indexSchema:
           type: object
           additionalProperties: true
+          description: |
+            An object that describe the data types of the document fields. This is equivalent to the Elasticsearch
+            mappings object. For more information see https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
 
     IndexedDocument:
       type: object
@@ -1402,6 +1451,16 @@ components:
         source:
           type: object
           additionalProperties: true
+
+    Query:
+      type: object
+      properties:
+        searchString:
+          type: string
+          description: The string that is used for the search
+        k:
+          type: integer
+          description: The number of results to return that are similar to the search string
 
     Block:
       required:
