@@ -7,8 +7,8 @@ info:
     To receive a free API key reach out at info@cambrion.de with brief description of your use-case.
 
 servers:
-  - url: http://localhost:8080
   - url: https://api.cambrion.io/v1
+  - url: http://localhost:8080
 
 tags:
   - name: Executions
@@ -386,7 +386,10 @@ paths:
   /pipelines/{pipelineId}/executeSync:
     post:
       summary: Execute pipeline synchronously
-      description: Execute a pipeline synchronously and return the corresponding observation
+      description: |
+        Execute a pipeline synchronously and return the corresponding observation. The timeout is
+        30 seconds. If the computation takes longer than the timeout period a timeout error will
+        be returned.
       tags:
         - Pipelines
       parameters:
@@ -483,13 +486,41 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Model'
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: receipt-pipeline
+                    state:
+                      type: string
+                    description:
+                      $ref: '#/components/schemas/ModelDescription'
+                    config:
+                      type: object
+                      additionalProperties: true
     post:
       summary: Register an uploaded model (currently internal only)
       tags:
         - Models
       requestBody:
         $ref: '#/components/requestBodies/ModelRequest'
+      responses:
+        '200':
+          description: Deployment successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelName}/copy:
+    post:
+      summary: Copy a registered model
+      tags:
+        - Models
+      parameters:
+        - $ref: '#/components/parameters/ModelName'
+      requestBody:
+        $ref: '#/components/requestBodies/ModelCopyRequest'
       responses:
         '200':
           description: Deployment successful
@@ -648,6 +679,31 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /indices/{indexId}/documents/batches:
+    post:
+      summary: Create document
+      description: |
+        Create a JSON document in an index. If the index does not exist it will be created automatically.
+      tags:
+        - Indices
+      parameters:
+        - $ref: '#/components/parameters/IndexId'
+      requestBody:
+        $ref: '#/components/requestBodies/DocumentBatchRequest'
+      responses:
+        '204':
+          description: Document stored successfully
+        '400':
+          description: Invalid index ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /indices/{indexId}/documents/{documentId}:
     get:
       summary: Get document
@@ -712,7 +768,32 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Model'
+            type: object
+            properties:
+              name:
+                type: string
+                example: receipt-pipeline
+              description:
+                $ref: '#/components/schemas/ModelDescription'
+              config:
+                type: object
+                additionalProperties: true
+
+    ModelCopyRequest:
+      description: Model Copy request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              newName:
+                type: string
+                example: receipt-pipeline
+              newDescription:
+                $ref: '#/components/schemas/ModelDescription'
+              newConfig:
+                type: object
+                additionalProperties: true
 
     PipelineRequest:
       description: Pipeline request
@@ -734,6 +815,8 @@ components:
               description:
                 type: string
                 example: A pipeline to extract contents from a receipt
+              tag:
+                type: string
               version:
                 type: integer
                 example: 1
@@ -782,6 +865,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/IndexedDocument'
+
+    DocumentBatchRequest:
+      description: Document batch request
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/IndexedDocument'
 
     QueryRequest:
       description: Query request
@@ -996,6 +1088,14 @@ components:
       schema:
         type: string
 
+    ModelName:
+      name: modelName
+      in: path
+      description: Name of the model
+      required: true
+      schema:
+        type: string
+
     DeploymentId:
       name: deploymentId
       in: path
@@ -1074,7 +1174,7 @@ components:
         type: integer
 
   schemas:
-    Model:
+    ModelDescription:
       type: object
       properties:
         name:
@@ -1295,12 +1395,12 @@ components:
           description: The parameters that will be provided to the underlying model at inference time
         inputs:
           type: array
-          description: Inputs of the model. These dependent of the implementation.
+          description: Inputs of the model. These depend of the implementation.
           items:
             $ref: '#/components/schemas/ModelInput'
         outputs:
           type: array
-          description: Outputs of the model. These dependent of the implementation.
+          description: Outputs of the model. These depend of the implementation.
           items:
             $ref: '#/components/schemas/ModelOutput'
 
@@ -1405,8 +1505,12 @@ components:
             type: string
             format: base64
           type: array
-        #runtimeParameters:
-        #  dsdsadsadsad
+        runtimeParameters:
+          type: object
+          additionalProperties: true
+          description: Not active yet!
+        observation:
+          "$ref": "#/components/schemas/Observation"
         text:
           type: string
           description: Raw text that can be used as input in pipelines
@@ -1433,15 +1537,11 @@ components:
         indexId:
           type: string
           description: Unique ID of the index.
-        semanticSearchField:
-          type: string
-          description: This field is used to encode semantic information
-        indexSchema:
-          type: object
-          additionalProperties: true
-          description: |
-            An object that describe the data types of the document fields. This is equivalent to the Elasticsearch
-            mappings object. For more information see https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
+        semanticSearchFields:
+          type: array
+          description: A list of document fields that is used to semantically embed the field text.
+          items:
+            type: string
 
     IndexedDocument:
       type: object
@@ -1451,16 +1551,33 @@ components:
         source:
           type: object
           additionalProperties: true
+        score:
+          type: number
 
     Query:
       type: object
       properties:
-        searchString:
-          type: string
-          description: The string that is used for the search
+        fullText:
+          type: object
+          additionalProperties:
+            type: string
+          description: Fields used for full text search
+        semanticSearch:
+          description: |
+            A map that maps search strings to fields.
+          type: object
+          additionalProperties:
+            type: string
         k:
           type: integer
           description: The number of results to return that are similar to the search string
+        searchPipelineId:
+          type: string
+          description: |
+            ID of the pipeline to be used for searching. If no pipeline is given, the default
+            pipeline according to the number of search fields is selected.
+        pipelineParameters:
+          "$ref": "#/components/schemas/PipelineExecutionObject"
 
     Block:
       required:
@@ -1815,6 +1932,10 @@ components:
           items:
             "$ref": "#/components/schemas/MediaContent"
           type: array
+        documents:
+          items:
+            "$ref": "#/components/schemas/LinkedDocument"
+          type: array
       type: object
       title: Execution Observation
       description: The structured content of a set of media files.
@@ -1964,7 +2085,6 @@ components:
     Table:
       required:
         - id
-        - entity
       properties:
         id:
           type: string
@@ -2014,7 +2134,8 @@ components:
           type: array
         tag:
           type: string
-      additionalProperties: true
+        score:
+          type: number
       type: object
       title: Linked Document
 
