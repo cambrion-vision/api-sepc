@@ -4,7 +4,7 @@ info:
   title: Cambrion API
   description: |
     The official Cambrion API specification.
-    To receive a free API key reach out at info@cambrion.de with brief description of your use-case.
+    To receive a free API key reach out at hello@cambrion.ai with brief description of your use-case.
 
 servers:
   - url: https://api.cambrion.io/v1
