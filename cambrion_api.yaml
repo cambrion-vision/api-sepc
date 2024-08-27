@@ -7,8 +7,8 @@ info:
     To receive a free API key reach out at info@cambrion.de with brief description of your use-case.
 
 servers:
-  - url: http://localhost:8080
   - url: https://api.cambrion.io/v1
+  - url: http://localhost:8080
 
 tags:
   - name: Executions
