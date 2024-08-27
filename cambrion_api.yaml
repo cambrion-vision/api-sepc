@@ -386,7 +386,10 @@ paths:
   /pipelines/{pipelineId}/executeSync:
     post:
       summary: Execute pipeline synchronously
-      description: Execute a pipeline synchronously and return the corresponding observation
+      description: |
+        Execute a pipeline synchronously and return the corresponding observation. The timeout is
+        30 seconds. If the computation takes longer than the timeout period a timeout error will
+        be returned.
       tags:
         - Pipelines
       parameters:
@@ -483,13 +486,41 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Model'
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: receipt-pipeline
+                    state:
+                      type: string
+                    description:
+                      $ref: '#/components/schemas/ModelDescription'
+                    config:
+                      type: object
+                      additionalProperties: true
     post:
       summary: Register an uploaded model (currently internal only)
       tags:
         - Models
       requestBody:
         $ref: '#/components/requestBodies/ModelRequest'
+      responses:
+        '200':
+          description: Deployment successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelName}/copy:
+    post:
+      summary: Copy a registered model
+      tags:
+        - Models
+      parameters:
+        - $ref: '#/components/parameters/ModelName'
+      requestBody:
+        $ref: '#/components/requestBodies/ModelCopyRequest'
       responses:
         '200':
           description: Deployment successful
@@ -648,6 +679,31 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /indices/{indexId}/documents/batches:
+    post:
+      summary: Create document
+      description: |
+        Create a JSON document in an index. If the index does not exist it will be created automatically.
+      tags:
+        - Indices
+      parameters:
+        - $ref: '#/components/parameters/IndexId'
+      requestBody:
+        $ref: '#/components/requestBodies/DocumentBatchRequest'
+      responses:
+        '204':
+          description: Document stored successfully
+        '400':
+          description: Invalid index ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /indices/{indexId}/documents/{documentId}:
     get:
       summary: Get document
@@ -691,6 +747,112 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /extractions:
+    get:
+      summary: Get all extractions
+      tags:
+        - Extractions
+      responses:
+        '200':
+          description: A list of all extractions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExtractionItem'
+    post:
+      summary: Create extraction
+      description: |
+        Create a document extraction. This automatically creates a pipeline that corresponds
+        to the instructions in the extraction.
+      tags:
+        - Extractions
+      requestBody:
+        $ref: '#/components/requestBodies/ExtractionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExtractionResponse'
+        '400':
+          description: Invalid extraction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /extractions/{extractionId}:
+    put:
+      summary: Update extraction
+      description: |
+        Update an existing extraction and the corresponding pipeline.
+      tags:
+        - Extractions
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      requestBody:
+        $ref: '#/components/requestBodies/ExtractionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExtractionResponse'
+        '400':
+          description: Invalid extraction ID or extraction body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete extraction
+      tags:
+        - Extractions
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      responses:
+        '204':
+          description: Extraction deleted
+        '400':
+          description: Invalid extraction ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /extractions/{extractionId}/examples:
+    post:
+      summary: Create an example
+      description: |
+        Create an extraction example used to
+      tags:
+        - Indices
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      requestBody:
+        $ref: '#/components/requestBodies/Observation'
+      responses:
+        '204':
+          description: Example stored successfully
+        '400':
+          description: Invalid extraction ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   requestBodies:
     PipelineExecutionRequest:
@@ -712,7 +874,32 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Model'
+            type: object
+            properties:
+              name:
+                type: string
+                example: receipt-pipeline
+              description:
+                $ref: '#/components/schemas/ModelDescription'
+              config:
+                type: object
+                additionalProperties: true
+
+    ModelCopyRequest:
+      description: Model Copy request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              newName:
+                type: string
+                example: receipt-pipeline
+              newDescription:
+                $ref: '#/components/schemas/ModelDescription'
+              newConfig:
+                type: object
+                additionalProperties: true
 
     PipelineRequest:
       description: Pipeline request
@@ -734,6 +921,8 @@ components:
               description:
                 type: string
                 example: A pipeline to extract contents from a receipt
+              tag:
+                type: string
               version:
                 type: integer
                 example: 1
@@ -776,12 +965,54 @@ components:
           schema:
             $ref: '#/components/schemas/Index'
 
+    ExtractionRequest:
+      description: Extraction request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              description:
+                type: string
+                description: The description of the extraction
+              instance:
+                type: string
+                description: internal
+              store:
+                type: string
+                description: The store from which references are incorporated into the extraction
+              compact:
+                type: boolean
+                default: false
+                description: Faster response but no confidences
+              highPrecision:
+                type: boolean
+                default: false
+                description: Used for higher precision but slower response
+              size:
+                type: number
+                default: 1300
+                description: Image resolution in px. Higher leads to better precision but slower response.
+              generationInstruct:
+                type: object
+                description: The instruct JSON expression that is used to describe the extraction.
+                additionalProperties: true
+
     DocumentRequest:
       description: Document request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/IndexedDocument'
+
+    DocumentBatchRequest:
+      description: Document batch request
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/IndexedDocument'
 
     QueryRequest:
       description: Query request
@@ -807,6 +1038,16 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Execution'
+
+    ExtractionResponse:
+      description: Response of an execution
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              pipelineId:
+                type: string
 
     PipelineResponse:
       description: Response to the creation of a new pipeline
@@ -996,6 +1237,14 @@ components:
       schema:
         type: string
 
+    ModelName:
+      name: modelName
+      in: path
+      description: Name of the model
+      required: true
+      schema:
+        type: string
+
     DeploymentId:
       name: deploymentId
       in: path
@@ -1016,6 +1265,14 @@ components:
       name: mediaId
       in: path
       description: ID of uploaded media
+      required: true
+      schema:
+        type: string
+
+    ExtractionId:
+      name: extractionId
+      in: path
+      description: ID of an extraction
       required: true
       schema:
         type: string
@@ -1074,7 +1331,7 @@ components:
         type: integer
 
   schemas:
-    Model:
+    ModelDescription:
       type: object
       properties:
         name:
@@ -1085,6 +1342,73 @@ components:
           type: integer
         resourceTag:
           type: string
+
+    ExtractionItem:
+      properties:
+        extractionId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        instance:
+          type: string
+        generationInstruct:
+          type: object
+          additionalProperties: true
+
+    GenerationInstruct:
+      type: object
+      additionalProperties: true
+
+    InstructTree:
+      type: object
+      additionalProperties: true
+
+    GenerationField:
+      type: object
+      properties:
+        fieldName:
+          type: string
+        fieldKey:
+          type: string
+        description:
+          type: string
+        examples:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+          default: "STRING"
+          enum:
+            - STRING
+            - INTEGER
+            - BOOLEAN
+            - DATE
+            - FLOAT
+
+    GenerationKeyValueSet:
+      type: object
+      properties:
+        description:
+          type: string
+        set:
+          type: object
+          additionalProperties:
+            "$ref": "#/components/schemas/GenerationField"
+
+    GenerationTable:
+      type: object
+      properties:
+        key:
+          type: string
+        description:
+          type: string
+        columns:
+          type: object
+          additionalProperties:
+            "$ref": "#/components/schemas/GenerationKeyValueSet"
 
     Pipeline:
       type: object
@@ -1295,12 +1619,12 @@ components:
           description: The parameters that will be provided to the underlying model at inference time
         inputs:
           type: array
-          description: Inputs of the model. These dependent of the implementation.
+          description: Inputs of the model. These depend of the implementation.
           items:
             $ref: '#/components/schemas/ModelInput'
         outputs:
           type: array
-          description: Outputs of the model. These dependent of the implementation.
+          description: Outputs of the model. These depend of the implementation.
           items:
             $ref: '#/components/schemas/ModelOutput'
 
@@ -1405,8 +1729,12 @@ components:
             type: string
             format: base64
           type: array
-        #runtimeParameters:
-        #  dsdsadsadsad
+        runtimeParameters:
+          type: object
+          additionalProperties: true
+          description: Not active yet!
+        observation:
+          "$ref": "#/components/schemas/Observation"
         text:
           type: string
           description: Raw text that can be used as input in pipelines
@@ -1433,15 +1761,11 @@ components:
         indexId:
           type: string
           description: Unique ID of the index.
-        semanticSearchField:
-          type: string
-          description: This field is used to encode semantic information
-        indexSchema:
-          type: object
-          additionalProperties: true
-          description: |
-            An object that describe the data types of the document fields. This is equivalent to the Elasticsearch
-            mappings object. For more information see https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
+        semanticSearchFields:
+          type: array
+          description: A list of document fields that is used to semantically embed the field text.
+          items:
+            type: string
 
     IndexedDocument:
       type: object
@@ -1451,16 +1775,33 @@ components:
         source:
           type: object
           additionalProperties: true
+        score:
+          type: number
 
     Query:
       type: object
       properties:
-        searchString:
-          type: string
-          description: The string that is used for the search
+        fullText:
+          type: object
+          additionalProperties:
+            type: string
+          description: Fields used for full text search
+        semanticSearch:
+          description: |
+            A map that maps search strings to fields.
+          type: object
+          additionalProperties:
+            type: string
         k:
           type: integer
           description: The number of results to return that are similar to the search string
+        searchPipelineId:
+          type: string
+          description: |
+            ID of the pipeline to be used for searching. If no pipeline is given, the default
+            pipeline according to the number of search fields is selected.
+        pipelineParameters:
+          "$ref": "#/components/schemas/PipelineExecutionObject"
 
     Block:
       required:
@@ -1815,6 +2156,10 @@ components:
           items:
             "$ref": "#/components/schemas/MediaContent"
           type: array
+        documents:
+          items:
+            "$ref": "#/components/schemas/LinkedDocument"
+          type: array
       type: object
       title: Execution Observation
       description: The structured content of a set of media files.
@@ -1964,7 +2309,6 @@ components:
     Table:
       required:
         - id
-        - entity
       properties:
         id:
           type: string
@@ -2014,7 +2358,8 @@ components:
           type: array
         tag:
           type: string
-      additionalProperties: true
+        score:
+          type: number
       type: object
       title: Linked Document
 
