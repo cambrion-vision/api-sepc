@@ -14,22 +14,22 @@ tags:
     description: Execution environment that store results.
     externalDocs:
       description: Find out more
-      url: https://docs.cambrion.io/docs/workflows/executions
+      url: https://docs.cambrion.io/docs/pipelines/executions
   - name: Pipelines
     description: Machine learning pipelines.
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs/workflows/pipeline
+      url: https://docs.cambrion.io/docs/pipelines/pipeline
   - name: Extractions
     description: Extraction definitions.
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs
+      url: https://docs.cambrion.io/docs/pipelines/extractions
   - name: Indices
     description: Indices
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs/workflows/linker
+      url: https://docs.cambrion.io/docs/pipelines/linker
 
 paths:
   /executions:
