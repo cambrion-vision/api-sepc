@@ -20,8 +20,8 @@ tags:
     externalDocs:
       description: Find out more in the documentation
       url: https://docs.cambrion.io/docs/workflows/pipeline
-  - name: Deployments
-    description: (TODO) Deployed Pipelines.
+  - name: Extractions
+    description: Extraction definitions.
     externalDocs:
       description: Find out more in the documentation
       url: https://docs.cambrion.io/docs
