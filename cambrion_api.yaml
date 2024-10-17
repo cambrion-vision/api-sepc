@@ -7,6 +7,7 @@ info:
     To receive a free API key reach out at hello@cambrion.ai with brief description of your use-case.
 
 servers:
+  - url: http://localhost:8080
   - url: https://api.cambrion.io/v1
 
 tags:
@@ -14,22 +15,22 @@ tags:
     description: Execution environment that store results.
     externalDocs:
       description: Find out more
-      url: https://docs.cambrion.io/docs/pipelines/executions
+      url: https://docs.cambrion.io/docs/workflows/executions
   - name: Pipelines
     description: Machine learning pipelines.
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs/pipelines/pipeline
+      url: https://docs.cambrion.io/docs/workflows/pipeline
   - name: Extractions
     description: Extraction definitions.
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs/pipelines/extractions
+      url: https://docs.cambrion.io/docs
   - name: Indices
     description: Indices
     externalDocs:
       description: Find out more in the documentation
-      url: https://docs.cambrion.io/docs/pipelines/linker
+      url: https://docs.cambrion.io/docs/workflows/linker
 
 paths:
   /executions:
@@ -40,6 +41,7 @@ paths:
         If an execution ID is given that ID will be used, otherwise a new one is created. If the execution already
         exists, it will be ignored and 204 will be returned. If a new execution was created, 200 is returned with
         the execution ID as body.
+      operationId: executions/create-execution
       tags:
         - Executions
       requestBody:
@@ -61,6 +63,7 @@ paths:
       summary: Gets all executions
       tags:
         - Executions
+      operationId: executions/get-all-executions
       parameters:
         - $ref: '#/components/parameters/ExecutionTag'
       responses:
@@ -80,6 +83,7 @@ paths:
       summary: Gets execution
       tags:
         - Executions
+      operationId: executions/get-execution
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       responses:
@@ -99,6 +103,7 @@ paths:
       summary: Add media to an observation
       tags:
         - Executions
+      operationId: executions/add-media
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       requestBody:
@@ -132,6 +137,7 @@ paths:
   /executions/{executionId}/observation/media/{mediaId}:
     get:
       summary: Retrieve a specific media
+      operationId: executions/get-media
       tags:
         - Executions
       parameters:
@@ -145,6 +151,7 @@ paths:
     post:
       summary: Merge a raw observation into the current observation
       description: The raw observation is merged into the current observation context.
+      operationId: executions/create-observation
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       tags:
@@ -167,6 +174,7 @@ paths:
     get:
       summary: Get observation
       description: Get a full observation of the execution.
+      operationId: executions/get-observation
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       tags:
@@ -190,6 +198,7 @@ paths:
       summary: Transform an observation
       description: Transform a raw observation into an object using a JSONata statement. JSONata is a transformation
         language for JSON data. It can be used to transform . For more information see http://docs.jsonata.org/overview.html
+      operationId: executions/transform-observation
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       tags:
@@ -219,6 +228,7 @@ paths:
       description: |
         Transform a raw observation into the corresponding JSON object. The values in the JSON object correspond to
         the data values in the observation. If data values are not available, the raw text is used.
+      operationId: executions/transform-observation-json
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       tags:
@@ -241,6 +251,7 @@ paths:
     post:
       summary: Link results of an execution
       description: Link contents of observation to documents in an index.
+      operationId: executions/link-execution
       parameters:
         - $ref: '#/components/parameters/ExecutionId'
       tags:
@@ -264,6 +275,7 @@ paths:
   /pipelines:
     get:
       summary: Get all deployed pipelines
+      operationId: pipelines/get-deployed-pipelines
       tags:
         - Pipelines
       responses:
@@ -279,6 +291,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     post:
       summary: Create new pipeline
+      operationId: pipelines/create-pipeline
       tags:
         - Pipelines
       requestBody:
@@ -310,6 +323,7 @@ paths:
       summary: Get a specific pipeline
       tags:
         - Pipelines
+      operationId: pipelines/get-pipeline
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       responses:
@@ -329,6 +343,7 @@ paths:
       summary: Update an existing pipeline
       tags:
         - Pipelines
+      operationId: pipelines/update-pipeline
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       requestBody:
@@ -351,6 +366,7 @@ paths:
       summary: Delete a specific pipeline
       tags:
         - Pipelines
+      operationId: pipelines/delete-pipeline
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       responses:
@@ -366,6 +382,7 @@ paths:
       summary: Get graph representation (definition) of a pipeline
       tags:
         - Pipelines
+      operationId: pipelines/get-pipeline-definition
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       responses:
@@ -389,6 +406,7 @@ paths:
         Execute a pipeline synchronously and return the corresponding observation. The timeout is
         30 seconds. If the computation takes longer than the timeout period a timeout error will
         be returned.
+      operationId: pipelines/execute-pipeline-sync
       tags:
         - Pipelines
       parameters:
@@ -414,6 +432,7 @@ paths:
       summary: Transform an observation
       description: |
         Execute a pipeline synchronously and return the transformed observation
+      operationId: pipelines/execute-pipeline-sync-transform
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       tags:
@@ -439,6 +458,7 @@ paths:
       summary: Transform an observation
       description: |
         Execute a pipeline synchronously and return the corresponding JSON object.
+      operationId: pipelines/execute-pipeline-sync-transform-json
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       tags:
@@ -464,6 +484,7 @@ paths:
       summary: Execute pipeline asynchronously
       tags:
         - Pipelines
+      operationId: pipelines/execute-pipeline-async
       parameters:
         - $ref: '#/components/parameters/PipelineId'
       requestBody:
@@ -477,6 +498,7 @@ paths:
       summary: Get all registered models
       tags:
         - Models
+      operationId: models/get-models
       responses:
         '200':
           description: Get list of all registered models
@@ -501,6 +523,7 @@ paths:
       summary: Register an uploaded model (currently internal only)
       tags:
         - Models
+      operationId: models/register-models
       requestBody:
         $ref: '#/components/requestBodies/ModelRequest'
       responses:
@@ -516,6 +539,7 @@ paths:
       summary: Copy a registered model
       tags:
         - Models
+      operationId: models/copy-model
       parameters:
         - $ref: '#/components/parameters/ModelName'
       requestBody:
@@ -532,6 +556,7 @@ paths:
     get:
       summary: Get all indices
       description: Get a list of all indices.
+      operationId: indices/get-indices
       tags:
         - Indices
       parameters:
@@ -550,6 +575,7 @@ paths:
     post:
       summary: Create index
       description: Create a new index with an optional schema.
+      operationId: indices/create-index
       tags:
         - Indices
       requestBody:
@@ -571,6 +597,7 @@ paths:
       summary: Get index description
       description: |
         Get the description of an index. Including the data model if present.
+      operationId: indices/get-index
       tags:
         - Indices
       parameters:
@@ -592,6 +619,7 @@ paths:
     delete:
       summary: Delete index
       description: Delete an index.
+      operationId: indices/delete-index
       tags:
         - Indices
       parameters:
@@ -615,6 +643,7 @@ paths:
       summary: Query an index with a search string
       description: |
         Query an index with a search string
+      operationId: indices/query-index
       tags:
         - Indices
       parameters:
@@ -640,6 +669,7 @@ paths:
       summary: Get all documents
       tags:
         - Indices
+      operationId: indices/get-documents
       parameters:
         - $ref: '#/components/parameters/IndexId'
         - $ref: '#/components/parameters/DocumentLimit'
@@ -658,6 +688,7 @@ paths:
       summary: Create document
       description: |
         Create a JSON document in an index. If the index does not exist it will be created automatically.
+      operationId: indices/create-documents
       tags:
         - Indices
       parameters:
@@ -683,6 +714,7 @@ paths:
       summary: Create document
       description: |
         Create a JSON document in an index. If the index does not exist it will be created automatically.
+      operationId: indices/create-documents-batches
       tags:
         - Indices
       parameters:
@@ -708,6 +740,7 @@ paths:
       summary: Get document
       tags:
         - Indices
+      operationId: indices/get-document
       parameters:
         - $ref: '#/components/parameters/IndexId'
         - $ref: '#/components/parameters/DocumentId'
@@ -729,6 +762,7 @@ paths:
       summary: Delete document
       tags:
         - Indices
+      operationId: indices/delete-document
       parameters:
         - $ref: '#/components/parameters/IndexId'
         - $ref: '#/components/parameters/DocumentId'
@@ -751,6 +785,7 @@ paths:
       summary: Get all extractions
       tags:
         - Extractions
+      operationId: extractions/get-extractions
       responses:
         '200':
           description: A list of all extractions
@@ -765,6 +800,7 @@ paths:
       description: |
         Create a document extraction. This automatically creates a pipeline that corresponds
         to the instructions in the extraction.
+      operationId: extractions/create-extraction
       tags:
         - Extractions
       requestBody:
@@ -788,6 +824,7 @@ paths:
       summary: Update extraction
       description: |
         Update an existing extraction and the corresponding pipeline.
+      operationId: extractions/update-extraction
       tags:
         - Extractions
       parameters:
@@ -811,6 +848,7 @@ paths:
       summary: Delete extraction
       tags:
         - Extractions
+      operationId: extractions/delete-extraction
       parameters:
         - $ref: '#/components/parameters/ExtractionId'
       responses:
@@ -974,12 +1012,6 @@ components:
               description:
                 type: string
                 description: The description of the extraction
-              instance:
-                type: string
-                description: internal
-              store:
-                type: string
-                description: The store from which references are incorporated into the extraction
               compact:
                 type: boolean
                 default: false
@@ -992,6 +1024,17 @@ components:
                 type: number
                 default: 1300
                 description: Image resolution in px. Higher leads to better precision but slower response.
+              parallelProcessing:
+                type: boolean
+                default: true
+                description: |
+                  Pages will be processed in parallel. This leads to lower latency but context between pages will be lost.
+              intelligentBatching:
+                type: boolean
+                default: true
+                description: |
+                  The AI will batch as many pages together as possible. This allows understanding content across
+                  pages. Will be ignored if parallelProcessing is true.
               generationInstruct:
                 type: object
                 description: The instruct JSON expression that is used to describe the extraction.
@@ -1346,12 +1389,34 @@ components:
       properties:
         extractionId:
           type: string
-        name:
-          type: string
         description:
           type: string
-        instance:
+        state:
           type: string
+          description: The state of the extraction. It can take up to 20 seconds until the extraction is ready.
+        compact:
+          type: boolean
+          default: false
+          description: Faster response but no confidences
+        highPrecision:
+          type: boolean
+          default: false
+          description: Used for higher precision but slower response
+        size:
+          type: number
+          default: 1300
+          description: Image resolution in px. Higher leads to better precision but slower response.
+        parallelProcessing:
+          type: boolean
+          default: true
+          description: |
+            Pages will be processed in parallel. This leads to lower latency but context between pages will be lost.
+        intelligentBatching:
+          type: boolean
+          default: true
+          description: |
+            The AI will batch as many pages together as possible. This allows understanding content across
+            pages. Will be ignored if parallelProcessing is true.
         generationInstruct:
           type: object
           additionalProperties: true
@@ -1708,7 +1773,7 @@ components:
         tryImageConversion:
           type: boolean
           description: Tries to convert the provided content to an image (e.g. PDF)
-          default: true
+          default: false
         trySimpleText:
           type: boolean
           description: |
