@@ -31,6 +31,11 @@ tags:
     externalDocs:
       description: Find out more in the documentation
       url: https://docs.cambrion.io/docs/workflows/linker
+  - name: Hooks
+    description: Webhook and notification hooks for execution events.
+    externalDocs:
+      description: Find out more in the documentation
+      url: https://docs.cambrion.io/docs/webhooks
 
 paths:
   /executions:
@@ -97,6 +102,21 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Deletes an execution
+      tags:
+        - Executions
+      operationId: executions/delete-execution
+      parameters:
+        - $ref: '#/components/parameters/ExecutionId'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /executions/{executionId}/observation/media:
     post:
@@ -247,6 +267,56 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /executions/{executionId}/observation/refinements:
+    post:
+      summary: Submit refinements to an observation
+      description: |
+        Submit user corrections to extracted data. Refinements can target entities,
+        key-value pairs, tables, or key-value sets by their IDs. Refinements are
+        additive - original data is preserved.
+      operationId: executions/submit-refinements
+      tags:
+        - Executions
+      parameters:
+        - $ref: '#/components/parameters/ExecutionId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefinementRequest'
+      responses:
+        '204':
+          description: Refinements applied successfully
+        '400':
+          description: Invalid refinement request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      summary: Get all refinements for an observation
+      description: Retrieve a summary of all refinements that have been applied to the observation.
+      operationId: executions/get-refinements
+      tags:
+        - Executions
+      parameters:
+        - $ref: '#/components/parameters/ExecutionId'
+      responses:
+        '200':
+          description: Refinements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefinementSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /executions/{executionId}/link:
     post:
       summary: Link results of an execution
@@ -267,6 +337,150 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /executions/{executionId}/submit:
+    post:
+      summary: Submit an execution
+      description: |
+        Triggers all SUBMIT-type hooks attached to this execution.
+        This endpoint is used to signal that an execution is ready for
+        external processing or notification. Returns the exact payloads
+        that were sent (or would be sent) to each hook endpoint.
+      operationId: executions/submit-execution
+      tags:
+        - Executions
+      parameters:
+        - $ref: '#/components/parameters/ExecutionId'
+      responses:
+        '200':
+          description: Submit hooks triggered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /executions/{executionId}/retry:
+    post:
+      summary: Retry an execution
+      description: |
+        Retry a failed or completed execution with a specified pipeline.
+        This updates the existing execution, resetting its status to PENDING
+        and scheduling it for async processing. Only executions with status
+        ERROR or COMPLETED can be retried.
+      operationId: executions/retry-execution
+      tags:
+        - Executions
+      parameters:
+        - $ref: '#/components/parameters/ExecutionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RetryExecutionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/RetryExecutionResponse'
+        '400':
+          description: Invalid request or execution status does not allow retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /hooks:
+    post:
+      summary: Create a hook
+      description: |
+        Create a hook that will be triggered when specific events occur on executions.
+        Hooks can notify external services via webhooks when execution status changes,
+        observations are updated, or when submit events are triggered.
+      operationId: hooks/create-hook
+      tags:
+        - Hooks
+      requestBody:
+        $ref: '#/components/requestBodies/HookRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/HookResponse'
+        '400':
+          description: Invalid hook configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      summary: Get all hooks
+      description: Retrieve all configured hooks.
+      operationId: hooks/get-hooks
+      tags:
+        - Hooks
+      responses:
+        '200':
+          $ref: '#/components/responses/HooksResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /hooks/{hookId}:
+    get:
+      summary: Get a specific hook
+      description: Retrieve a specific hook by its ID.
+      operationId: hooks/get-hook
+      tags:
+        - Hooks
+      parameters:
+        - $ref: '#/components/parameters/HookId'
+      responses:
+        '200':
+          $ref: '#/components/responses/HookResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a hook
+      description: Update an existing hook configuration.
+      operationId: hooks/update-hook
+      tags:
+        - Hooks
+      parameters:
+        - $ref: '#/components/parameters/HookId'
+      requestBody:
+        $ref: '#/components/requestBodies/HookRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/HookResponse'
+        '400':
+          description: Invalid hook configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a hook
+      description: Delete a hook.
+      operationId: hooks/delete-hook
+      tags:
+        - Hooks
+      parameters:
+        - $ref: '#/components/parameters/HookId'
+      responses:
+        '204':
+          description: Hook deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -820,6 +1034,26 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   /extractions/{extractionId}:
+    get:
+      summary: Get specific extraction
+      tags:
+        - Extractions
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      operationId: extractions/get-extraction
+      responses:
+        '200':
+          $ref: '#/components/responses/ExtractionItemResponse'
+        '400':
+          description: Invalid extraction ID or extraction body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       summary: Update extraction
       description: |
@@ -865,17 +1099,65 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /extractions/{extractionId}/examples:
+  /extractions/{extractionId}/suggest:
     post:
-      summary: Create an example
+      summary: Suggest changes to an extraction
       description: |
-        Create an extraction example used to
+        Suggest changes to an extraction
       tags:
-        - Indices
+        - Extractions
       parameters:
         - $ref: '#/components/parameters/ExtractionId'
       requestBody:
-        $ref: '#/components/requestBodies/Observation'
+        $ref: '#/components/requestBodies/SuggestionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExtractionItemResponse'
+        '400':
+          description: Invalid extraction ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /extractions/{extractionId}/suggest/async:
+    post:
+      summary: Suggest changes to an extraction asynchronously
+      description: |
+        Suggest changes to an extraction asynchronously
+      tags:
+        - Extractions
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      requestBody:
+        $ref: '#/components/requestBodies/SuggestionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuggestAsyncResponse'
+        '400':
+          description: Invalid extraction ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /extractions/{extractionId}/improve:
+    post:
+      summary: Improve an extraction with an example
+      description: |
+        Improve an extraction with an example
+      tags:
+        - Extractions
+      parameters:
+        - $ref: '#/components/parameters/ExtractionId'
+      requestBody:
+        $ref: '#/components/requestBodies/FeedbackRequest'
       responses:
         '204':
           description: Example stored successfully
@@ -899,12 +1181,33 @@ components:
           schema:
             $ref: '#/components/schemas/PipelineExecutionObject'
 
+    RetryExecutionRequest:
+      description: Request to retry an execution with a specified pipeline
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RetryExecutionRequestBody'
+
     ExecutionRequest:
       description: Execution is the context which holds data related to a specific execution
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Execution'
+
+    SuggestionRequest:
+      description: Suggest a change to an existing extraction via natural language or examples
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Suggestion'
+
+    FeedbackRequest:
+      description: Add feedback via examples
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Feedback'
 
     ModelRequest:
       description: Model request
@@ -1026,19 +1329,26 @@ components:
                 description: Image resolution in px. Higher leads to better precision but slower response.
               parallelProcessing:
                 type: boolean
-                default: true
+                default: false
                 description: |
                   Pages will be processed in parallel. This leads to lower latency but context between pages will be lost.
               intelligentBatching:
                 type: boolean
-                default: true
+                default: false
                 description: |
                   The AI will batch as many pages together as possible. This allows understanding content across
                   pages. Will be ignored if parallelProcessing is true.
+              targetModel:
+                type: string
               generationInstruct:
                 type: object
                 description: The instruct JSON expression that is used to describe the extraction.
                 additionalProperties: true
+              hookIds:
+                type: array
+                items:
+                  type: string
+                description: List of hook IDs to attach to executions created from this extraction.
 
     DocumentRequest:
       description: Document request
@@ -1063,6 +1373,13 @@ components:
           schema:
             $ref: '#/components/schemas/Query'
 
+    HookRequest:
+      description: Hook creation or update request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Hook'
+
 
   responses:
     ExecutionResponse:
@@ -1081,6 +1398,17 @@ components:
             items:
               $ref: '#/components/schemas/Execution'
 
+    RetryExecutionResponse:
+      description: Response containing the execution ID of the retried execution
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              executionId:
+                type: string
+                description: ID of the execution that was retried
+
     ExtractionResponse:
       description: Response of an execution
       content:
@@ -1090,6 +1418,13 @@ components:
             properties:
               pipelineId:
                 type: string
+
+    ExtractionItemResponse:
+      description: Response of an execution
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ExtractionItem'
 
     PipelineResponse:
       description: Response to the creation of a new pipeline
@@ -1142,6 +1477,16 @@ components:
 
     PipelineAsyncResponse:
       description: Response of asynchronous pipeline execution
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              executionId:
+                type: string
+
+    SuggestAsyncResponse:
+      description: Response of asynchronous suggestion request
       content:
         application/json:
           schema:
@@ -1241,6 +1586,22 @@ components:
             items:
               $ref: '#/components/schemas/IndexedDocument'
 
+    HookResponse:
+      description: Response containing a single hook
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Hook'
+
+    HooksResponse:
+      description: Response containing a list of hooks
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Hook'
+
     NotFound:
       description: The specified resource was not found
       content:
@@ -1319,6 +1680,14 @@ components:
       schema:
         type: string
 
+    HookId:
+      name: hookId
+      in: path
+      description: ID of a hook
+      required: true
+      schema:
+        type: string
+
     IndexId:
       name: indexId
       in: path
@@ -1385,6 +1754,15 @@ components:
         resourceTag:
           type: string
 
+    RetryExecutionRequestBody:
+      type: object
+      required:
+        - pipelineId
+      properties:
+        pipelineId:
+          type: string
+          description: ID of the pipeline to execute for the retry
+
     ExtractionItem:
       properties:
         extractionId:
@@ -1408,18 +1786,27 @@ components:
           description: Image resolution in px. Higher leads to better precision but slower response.
         parallelProcessing:
           type: boolean
-          default: true
+          default: false
           description: |
             Pages will be processed in parallel. This leads to lower latency but context between pages will be lost.
         intelligentBatching:
           type: boolean
-          default: true
+          default: false
           description: |
             The AI will batch as many pages together as possible. This allows understanding content across
             pages. Will be ignored if parallelProcessing is true.
+        targetModel:
+          type: string
         generationInstruct:
           type: object
           additionalProperties: true
+        hookIds:
+          type: array
+          items:
+            type: string
+          description: |
+            List of hook IDs that will be associated with executions using this extraction.
+            These hooks will fire on status changes, observation updates, and submit events.
 
     GenerationInstruct:
       type: object
@@ -1451,6 +1838,7 @@ components:
             - BOOLEAN
             - DATE
             - FLOAT
+            - ENUM
 
     GenerationKeyValueSet:
       type: object
@@ -1743,9 +2131,72 @@ components:
         createdAt:
           type: string
           description: Creation time
+        completedAt:
+          type: string
+          description: Completion time
+        duration:
+          type: number
+          description: Duration in seconds
+        status:
+          type: string
+          description: Status of the current execution. Includes error message in case of error.
         metaData:
           type: object
           additionalProperties: true
+        hookIds:
+          type: array
+          items:
+            type: string
+          description: |
+            Optional list of hook IDs to trigger for this execution. The referenced hooks will be
+            notified when events occur on this execution (status changes, observation updates, etc.).
+
+    FeedbackExample:
+      type: object
+      description: |
+        Feedback example
+      properties:
+        media:
+          description: |
+            Array of base 64 encoded media files. Content type will be detected automatically. For PDF, Docx, PPTX files
+            the files will be rendered as images. The images can then be processed within a pipeline.
+          items:
+            type: string
+            format: base64
+          type: array
+        example:
+          "$ref": "#/components/schemas/Observation"
+
+    Feedback:
+      type: object
+      description: |
+        Feedback
+      properties:
+        note:
+          type: string
+        example:
+          "$ref": "#/components/schemas/FeedbackExample"
+
+    Suggestion:
+      type: object
+      properties:
+        media:
+          description: |
+            Array of base 64 encoded media files. The media files will be used to derive a suggestion for a possible
+            underlying extraction. Content type will be detected automatically. For PDF, Docx, PPTX files
+            the files will be rendered as images. The images can then be processed within a pipeline.
+          items:
+            type: string
+            format: base64
+          type: array
+        documentContext:
+          type: string
+        instruction:
+          type: string
+        feedback:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Feedback"
 
     PipelineExecutionObject:
       type: object
@@ -1772,12 +2223,13 @@ components:
             language for JSON data. It can be used to transform . For more information see http://docs.jsonata.org/overview.html
         tryImageConversion:
           type: boolean
-          description: Tries to convert the provided content to an image (e.g. PDF)
+          description: |
+            DEPRECATED: Tries to convert the provided content to an image (e.g. PDF)
           default: false
         trySimpleText:
           type: boolean
           description: |
-            Tries to extract readable text from input media (e.g. Word doc). A number of different file formats is supported.
+            DEPRECATED: Tries to extract readable text from input media (e.g. Word doc). A number of different file formats is supported.
             Internally Apache Tika is used for text extraction. A full list of supported file formats can be found here:
             https://tika.apache.org/2.9.1/formats.html
           default: false
@@ -1802,6 +2254,15 @@ components:
         text:
           type: string
           description: Raw text that can be used as input in pipelines
+        hookIds:
+          type: array
+          items:
+            type: string
+          description: |
+            Optional list of hook IDs to trigger for this pipeline execution. The referenced hooks will be
+            notified when events occur on the resulting execution (status changes, observation updates, etc.).
+        entryPoint:
+          type: string
 
     EntityLinkerConfig:
       properties:
@@ -1981,6 +2442,11 @@ components:
           type: array
         keyValueSet:
           "$ref": "#/components/schemas/KeyValueSet"
+        keyValueSets:
+          description: List of key value sets contained in the document
+          items:
+            "$ref": "#/components/schemas/KeyValueSet"
+          type: array
       type: object
       title: Document
 
@@ -2031,6 +2497,8 @@ components:
             - UNIT
             - DATE
             - PERCENTAGE
+            - BOOLEAN
+            - ENUMERATION
           title: Entity Type
         data:
           "$ref": "#/components/schemas/EntityData"
@@ -2046,6 +2514,9 @@ components:
             - WORD
             - LINE
           title: Entity Layout Type
+        refinement:
+          "$ref": "#/components/schemas/Refinement"
+          description: User-provided correction for this entity's value or location
       type: object
       title: Entity
 
@@ -2073,6 +2544,9 @@ components:
           type: string
           format: date
           description: The parsed date in yyyy-MM-dd format.
+        boolValue:
+          type: boolean
+          description: The parsed boolean from the text.
         textData:
           type: string
           description: Text data from the document field that the entity linker associated to the entity.
@@ -2089,6 +2563,9 @@ components:
           type: string
           format: date
           description: Date type data from the document field that the entity linker associated to the entity.
+        boolData:
+          type: boolean
+          description: The parsed boolean from the text.
         field:
           type: string
           description: Name of the document field that the entity linker associated to the entity.
@@ -2178,7 +2655,7 @@ components:
           items:
             "$ref": "#/components/schemas/DocumentPage"
           type: array
-        imageHash:
+        mediaHash:
           type: string
           description: A hash of the media file
         codes:
@@ -2242,6 +2719,9 @@ components:
           "$ref": "#/components/schemas/Table"
         tag:
           type: string
+        refinement:
+          "$ref": "#/components/schemas/KeyValuePairRefinement"
+          description: Refinement for this key-value pair association
       type: object
       title: Key Value Pair
       description: |
@@ -2263,6 +2743,9 @@ components:
           description: An array of key value pairs.
         entity:
           "$ref": "#/components/schemas/Entity"
+        refinement:
+          "$ref": "#/components/schemas/KeyValueSetRefinement"
+          description: Structural refinement for this key-value set (add/remove pairs, comments)
       type: object
       title: Key Value Set
 
@@ -2391,6 +2874,9 @@ components:
             "$ref": "#/components/schemas/KeyValueSet"
           type: array
           description: The rows of the table representing the actual content of the table.
+        refinement:
+          "$ref": "#/components/schemas/TableRefinement"
+          description: Structural refinement for this table (add/remove rows, headers, comments)
       type: object
       title: Table
       description: |
@@ -2437,6 +2923,108 @@ components:
       required:
         - code
         - message
+
+    Hook:
+      type: object
+      description: |
+        A hook configuration that triggers notifications when specific events occur on an execution.
+        Hooks can send data to external services via webhooks, with support for custom headers
+        and flexible payload formats.
+      required:
+        - eventType
+        - hookType
+        - endpoint
+        - payloadType
+      properties:
+        hookId:
+          type: string
+          description: Unique identifier for the hook (auto-generated if not provided)
+        name:
+          type: string
+          description: Human-readable name for the hook
+        eventType:
+          $ref: '#/components/schemas/HookEventType'
+        hookType:
+          $ref: '#/components/schemas/HookType'
+        endpoint:
+          type: string
+          description: Target URL for webhook delivery
+          example: https://example.com/webhook
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Custom headers to include in webhook requests (e.g., for authentication)
+          example:
+            Authorization: Bearer your-token
+            X-Custom-Header: custom-value
+        statusFilter:
+          type: array
+          items:
+            type: string
+          description: |
+            For STATUS_CHANGE events: list of statuses that trigger the hook.
+            If empty or not provided, the hook triggers on any status change.
+          example:
+            - COMPLETED
+            - ERROR
+        payloadType:
+          $ref: '#/components/schemas/HookPayloadType'
+        transform:
+          type: string
+          description: |
+            JSONata expression to transform the observation before sending.
+            Required when payloadType is TRANSFORM or FORM_TRANSFORM. For more information see http://docs.jsonata.org/overview.html
+        formPayloadKey:
+          type: string
+          description: |
+            For FORM_TRANSFORM payloads: the form field name for the transformed JSON data.
+            Defaults to "payload" if not specified.
+          default: payload
+        formDocumentKey:
+          type: string
+          description: |
+            For FORM_TRANSFORM payloads: the form field name prefix for media files.
+            Multiple files will be named as {key}[0], {key}[1], etc. if there are multiple files.
+            Defaults to "documents" if not specified.
+          default: documents
+        enabled:
+          type: boolean
+          default: true
+          description: Whether the hook is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the hook was created (auto-set)
+      title: Hook
+
+    HookEventType:
+      type: string
+      description: The type of event that triggers the hook
+      enum:
+        - STATUS_CHANGE
+        - OBSERVATION_UPDATE
+        - SUBMIT
+      title: Hook Event Type
+
+    HookType:
+      type: string
+      description: The delivery mechanism for the hook
+      enum:
+        - WEBHOOK
+        - KAFKA
+        - NATS
+      title: Hook Type
+
+    HookPayloadType:
+      type: string
+      description: How to format the payload sent by the hook
+      enum:
+        - RAW
+        - JSON
+        - TRANSFORM
+        - FORM_TRANSFORM
+      title: Hook Payload Type
 
     LinkedField:
       required:
@@ -2485,6 +3073,241 @@ components:
       additionalProperties: true
       type: object
       title: Linked Field
+
+    Refinement:
+      type: object
+      description: |
+        A user-provided correction to an extracted entity value. Refinements are additive -
+        the original extraction is preserved while the correction is stored separately.
+      properties:
+        correctedText:
+          type: string
+          description: The corrected text representation
+        correctedValue:
+          type: string
+          description: The corrected value as string (will be parsed according to entity type)
+        correctedGeometry:
+          $ref: "#/components/schemas/Geometry"
+          description: Optional corrected location/bounding box
+        comment:
+          type: string
+          description: Explanation of why the correction was made
+        timestamp:
+          type: string
+          format: date-time
+          description: When the refinement was created (auto-set if not provided)
+        source:
+          type: string
+          description: Source of the refinement (e.g., "user", "review", "automated")
+      title: Refinement
+
+    KeyValuePairRefinement:
+      type: object
+      description: Refinement for a key-value pair association
+      properties:
+        comment:
+          type: string
+          description: Comment about the key-value association (e.g., wrong pairing)
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+      title: Key Value Pair Refinement
+
+    TableRefinement:
+      type: object
+      description: Structural refinement for a table
+      properties:
+        addedHeaders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entity"
+          description: Headers to add to the table
+        deletedHeaderIds:
+          type: array
+          items:
+            type: string
+          description: IDs of headers to mark as deleted
+        addedRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValueSet"
+          description: Rows to add to the table
+        deletedRowIds:
+          type: array
+          items:
+            type: string
+          description: IDs of rows (KeyValueSet IDs) to mark as deleted
+        comment:
+          type: string
+          description: Description of structural issues with the table
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+      title: Table Refinement
+
+    KeyValueSetRefinement:
+      type: object
+      description: Structural refinement for a key-value set
+      properties:
+        addedPairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValuePair"
+          description: Key-value pairs to add
+        deletedPairIds:
+          type: array
+          items:
+            type: string
+          description: IDs of key-value pairs to mark as deleted (by key entity ID)
+        comment:
+          type: string
+          description: Description of structural issues with the key-value set
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+      title: Key Value Set Refinement
+
+    EntityRefinementItem:
+      type: object
+      description: A refinement targeting a specific entity by ID
+      required:
+        - entityId
+        - refinement
+      properties:
+        entityId:
+          type: string
+          description: ID of the entity to refine
+        refinement:
+          $ref: "#/components/schemas/Refinement"
+      title: Entity Refinement Item
+
+    KeyValuePairRefinementItem:
+      type: object
+      description: A refinement targeting a specific key-value pair
+      required:
+        - keyEntityId
+      properties:
+        keyEntityId:
+          type: string
+          description: ID of the key entity in the pair
+        parentKeyValueSetId:
+          type: string
+          description: ID of the parent KeyValueSet (for disambiguation)
+        refinement:
+          $ref: "#/components/schemas/KeyValuePairRefinement"
+      title: Key Value Pair Refinement Item
+
+    TableRefinementItem:
+      type: object
+      description: A refinement targeting a specific table
+      required:
+        - tableId
+      properties:
+        tableId:
+          type: string
+          description: ID of the table to refine
+        refinement:
+          $ref: "#/components/schemas/TableRefinement"
+      title: Table Refinement Item
+
+    KeyValueSetRefinementItem:
+      type: object
+      description: A refinement targeting a specific key-value set
+      required:
+        - keyValueSetId
+      properties:
+        keyValueSetId:
+          type: string
+          description: ID of the key-value set to refine
+        refinement:
+          $ref: "#/components/schemas/KeyValueSetRefinement"
+      title: Key Value Set Refinement Item
+
+    RefinementRequest:
+      type: object
+      description: Batch request for submitting refinements to an observation
+      properties:
+        entityRefinements:
+          type: array
+          description: Refinements for individual entities
+          items:
+            $ref: "#/components/schemas/EntityRefinementItem"
+        keyValuePairRefinements:
+          type: array
+          description: Refinements for key-value pair associations
+          items:
+            $ref: "#/components/schemas/KeyValuePairRefinementItem"
+        tableRefinements:
+          type: array
+          description: Structural refinements for tables
+          items:
+            $ref: "#/components/schemas/TableRefinementItem"
+        keyValueSetRefinements:
+          type: array
+          description: Structural refinements for key-value sets
+          items:
+            $ref: "#/components/schemas/KeyValueSetRefinementItem"
+      title: Refinement Request
+
+    RefinementSummary:
+      type: object
+      description: Summary of all refinements applied to an observation
+      properties:
+        executionId:
+          type: string
+        totalRefinements:
+          type: integer
+          description: Total count of refinements
+        entityRefinementCount:
+          type: integer
+        structuralRefinementCount:
+          type: integer
+        lastUpdated:
+          type: string
+          format: date-time
+      title: Refinement Summary
+
+    SubmitResponse:
+      type: object
+      description: Response from the submit endpoint containing payloads sent to hooks
+      properties:
+        hookPayloads:
+          type: array
+          description: List of payloads sent to each hook
+          items:
+            $ref: '#/components/schemas/HookPayloadResult'
+      title: Submit Response
+
+    HookPayloadResult:
+      type: object
+      description: Result of sending a payload to a specific hook
+      properties:
+        hookId:
+          type: string
+          description: ID of the hook
+        hookName:
+          type: string
+          description: Name of the hook
+        endpoint:
+          type: string
+          description: Target endpoint URL
+        payload:
+          type: object
+          additionalProperties: true
+          description: The exact payload that was sent to the hook endpoint
+        delivered:
+          type: boolean
+          description: Whether the payload was successfully delivered
+        error:
+          type: string
+          description: Error message if delivery failed
+      title: Hook Payload Result
 
   securitySchemes:
     ApiKeyAuth:
