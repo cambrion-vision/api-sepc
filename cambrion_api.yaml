@@ -36,6 +36,11 @@ tags:
     externalDocs:
       description: Find out more in the documentation
       url: https://docs.cambrion.io/docs/webhooks
+  - name: Triggers
+    description: Start pipelines automatically from incoming email.
+    externalDocs:
+      description: Find out more in the documentation
+      url: https://docs.cambrion.io/docs/pipelines/triggers
 
 paths:
   /executions:
@@ -481,6 +486,112 @@ paths:
       responses:
         '204':
           description: Hook deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /triggers:
+    post:
+      summary: Create a trigger
+      description: |
+        Create a trigger that starts a pipeline execution when an inbound
+        message (e.g. an email) arrives at the configured transport address.
+      operationId: triggers/create-trigger
+      tags:
+        - Triggers
+      requestBody:
+        $ref: '#/components/requestBodies/TriggerRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TriggerResponse'
+        '400':
+          description: Invalid trigger configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      summary: Get all triggers
+      description: Retrieve all configured triggers.
+      operationId: triggers/get-triggers
+      tags:
+        - Triggers
+      responses:
+        '200':
+          $ref: '#/components/responses/TriggersResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /triggers/{triggerId}:
+    get:
+      summary: Get a specific trigger
+      description: Retrieve a specific trigger by its ID.
+      operationId: triggers/get-trigger
+      tags:
+        - Triggers
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TriggerResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a trigger
+      description: Update an existing trigger configuration.
+      operationId: triggers/update-trigger
+      tags:
+        - Triggers
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      requestBody:
+        $ref: '#/components/requestBodies/TriggerRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TriggerResponse'
+        '400':
+          description: Invalid trigger configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a trigger
+      description: Delete a trigger.
+      operationId: triggers/delete-trigger
+      tags:
+        - Triggers
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '204':
+          description: Trigger deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pipelines/{pipelineId}/triggers:
+    get:
+      summary: Get all triggers for a pipeline
+      description: Retrieve all triggers configured to start the given pipeline.
+      operationId: pipelines/get-pipeline-triggers
+      tags:
+        - Triggers
+      parameters:
+        - $ref: '#/components/parameters/PipelineId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TriggersResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1380,6 +1491,13 @@ components:
           schema:
             $ref: '#/components/schemas/Hook'
 
+    TriggerRequest:
+      description: Trigger creation or update request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Trigger'
+
 
   responses:
     ExecutionResponse:
@@ -1602,6 +1720,22 @@ components:
             items:
               $ref: '#/components/schemas/Hook'
 
+    TriggerResponse:
+      description: Response containing a single trigger
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Trigger'
+
+    TriggersResponse:
+      description: Response containing a list of triggers
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Trigger'
+
     NotFound:
       description: The specified resource was not found
       content:
@@ -1684,6 +1818,14 @@ components:
       name: hookId
       in: path
       description: ID of a hook
+      required: true
+      schema:
+        type: string
+
+    TriggerId:
+      name: triggerId
+      in: path
+      description: ID of a trigger
       required: true
       schema:
         type: string
@@ -3025,6 +3167,56 @@ components:
         - TRANSFORM
         - FORM_TRANSFORM
       title: Hook Payload Type
+
+    Trigger:
+      type: object
+      description: |
+        A trigger configuration that starts a pipeline execution when an inbound
+        message arrives at a configured transport address. Triggers are the
+        inbound-only front door for executions: an email (or other transport
+        message) is resolved to a pipeline and enqueued as a new execution.
+      required:
+        - transportType
+        - pipelineId
+      properties:
+        triggerId:
+          type: string
+          description: Unique identifier for the trigger (auto-generated if not provided)
+        name:
+          type: string
+          description: Human-readable name for the trigger
+        transportType:
+          type: string
+          description: Transport that delivers the inbound message
+          example: EMAIL
+        pipelineId:
+          type: string
+          description: ID of the pipeline to execute when the trigger fires
+        entryPoint:
+          type: string
+          description: Entry point (queue/workflow) to run the pipeline under
+          default: default-pipeline
+        pipelineParameters:
+          type: object
+          additionalProperties: true
+          description: Pipeline parameters passed to every execution this trigger starts
+        transportConfig:
+          type: object
+          additionalProperties: true
+          description: |
+            Transport-specific configuration. For EMAIL this contains the
+            inbound receive address, e.g. { "receive_address": "invoices-abc@ingest.cambrion.io" }.
+          example:
+            receive_address: invoices-abc@ingest.cambrion.io
+        enabled:
+          type: boolean
+          default: true
+          description: Whether the trigger is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the trigger was created (auto-set)
+      title: Trigger
 
     LinkedField:
       required:
